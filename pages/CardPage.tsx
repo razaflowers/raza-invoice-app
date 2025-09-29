@@ -60,7 +60,7 @@ const CardPage: React.FC<CardPageProps> = ({ navigate, t, language }) => {
   const handlePrintCard = () => {
     window.print();
   };
-  
+  /*
   const handleSuggestMessage = async () => {
     setIsLoading(true);
     try {
@@ -73,7 +73,7 @@ const CardPage: React.FC<CardPageProps> = ({ navigate, t, language }) => {
         setIsLoading(false);
     }
   };
-
+*/
   return (
     <div className="p-4 md:p-8 max-w-7xl mx-auto">
       <div className="flex justify-between items-center mb-6">
@@ -98,13 +98,14 @@ const CardPage: React.FC<CardPageProps> = ({ navigate, t, language }) => {
                     rows={4}
                     className="mt-1 block w-full border-gray-300 bg-white dark:bg-gray-700 dark:border-gray-600 rounded-md shadow-sm p-2"
                 />
+                {/*
                 <button
                     onClick={handleSuggestMessage}
                     disabled={isLoading}
                     className="mt-2 w-full bg-emerald-100 text-emerald-800 dark:bg-emerald-900 dark:text-emerald-200 font-semibold px-4 py-2 rounded-lg hover:bg-emerald-200 dark:hover:bg-emerald-800 transition disabled:bg-gray-200 disabled:cursor-not-allowed"
                 >
                     {isLoading ? t.cardPage.loading : t.cardPage.suggestMessage}
-                </button>
+                </button> */}
             </div>
 
             {/* Font, Font Size, and Text Color controls */}
