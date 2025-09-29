@@ -1,0 +1,1 @@
+- [x] Add console.log statements to saveInvoiceToDrive in services/invoiceService.ts for logging invoice data and process stages.
