@@ -1,11 +1,10 @@
-
 import React, { useState, useMemo, useRef } from 'react';
 import { Page, InvoiceItem, InvoicePaperSize, Invoice, Translation } from '../types';
 import { 
   TAX_RATE,
-  SHOP_NAME_AR, SHOP_VAT_NUMBER
+  SHOP_NAME_AR
 } from '../constants';
-import { saveInvoiceToDrive } from '../services/invoiceService';
+import { createAndFetchInvoice } from '../services/invoiceService';
 import { QRCodeSVG as QRCode } from 'qrcode.react';
 import InvoiceTemplate from '../components/InvoiceTemplate';
 import { generateInvoiceQrCode } from '../services/qrService';
@@ -28,7 +27,6 @@ const InvoicePage: React.FC<InvoicePageProps> = ({ navigate, t, language }) => {
   const [isTaxable, setIsTaxable] = useState(false);
   const [vatNumber, setVatNumber] = useState('');
 
-  const printRef = useRef<HTMLDivElement>(null);
 
   const gregorianDate = new Date().toLocaleDateString('en-US', {
     year: 'numeric', month: 'long', day: 'numeric'
@@ -59,7 +57,7 @@ const InvoicePage: React.FC<InvoicePageProps> = ({ navigate, t, language }) => {
     return { subtotal: sub, tax: taxAmount, total: totalAmount };
   }, [items, isTaxable]);
 
-  const shopQrData = `https://razaflowers.com`; // Simplified QR for shop info
+  const shopQrData = `https://razaflowers.com`;
 
   const invoiceQrData = useMemo(() => {
     if (!isTaxable || !vatNumber) return '';
@@ -75,44 +73,57 @@ const InvoicePage: React.FC<InvoicePageProps> = ({ navigate, t, language }) => {
   const invoiceData: Invoice = { invoiceNumber, items, gregorianDate, hijriDate, isTaxable, vatNumber, customerName, customerMobile, customerEmail };
 
   const handlePrintAndSave = async () => {
-    if (!printRef.current) return;
-
-    // Basic validation
-    if (!invoiceNumber || items.some(item => !item.product || !item.price)) {
-      alert(t.invoicePage.validationError); // تأكد من إضافة هذا النص للترجمة
-      return;
-    }
-
-    setIsProcessing(true);
-
-    try {
-      //
-      // هذا هو الكائن الكامل الذي سيتم إرساله للسكربت
-      //
-      const fullInvoiceData = {
-        ...invoiceData,
-        subtotal,
-        tax,
-        total,
-      };
-
-      const response = await saveInvoiceToDrive(fullInvoiceData);
-
-      if (response.status === 'success') {
-        alert(t.invoicePage.saveSuccess); // تأكد من إضافة هذا النص للترجمة
-        window.print();
-      } else {
-        throw new Error('Failed to save data to the server.');
+      if (!invoiceNumber || items.some(item => !item.product || !item.price)) {
+        alert(t.invoicePage.validationError);
+        return;
       }
+      setIsProcessing(true);
+      try {
+        const fullInvoiceData = { ...invoiceData, subtotal, tax, total };
 
-    } catch (error: any) {
-      console.error("An error occurred during the print and save process:", error);
-      alert(`${t.invoicePage.saveError}: ${error.message}`); // تأكد من إضافة هذا النص للترجمة
-    } finally {
-      setIsProcessing(false);
-    }
+        // 1. استدعاء الدالة الجديدة التي تتصل بالخادم
+        const result = await createAndFetchInvoice(fullInvoiceData, language, t);
+
+        // 2. معالجة الرد الذي يحتوي على PDF
+        const base64Data = result.pdfBase64;
+        const pdfBlob = new Blob(
+          [Uint8Array.from(atob(base64Data), c => c.charCodeAt(0))],
+          { type: 'application/pdf' }
+        );
+        
+        const pdfUrl = URL.createObjectURL(pdfBlob);
+
+        // 3. فتح نافذة الطباعة
+        const printWindow = window.open(pdfUrl);
+        if (printWindow) {
+          printWindow.onload = () => {
+            printWindow.print();
+          };
+        } else {
+          // إذا قام المتصفح بحظر النافذة المنبثقة، قم بتوفير رابط تحميل كحل بديل
+          const a = document.createElement('a');
+          a.href = pdfUrl;
+          a.download = `invoice-${invoiceNumber}.pdf`;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          alert("تم تحميل الفاتورة. يرجى فتحها وطباعتها يدويًا.");
+        }
+
+        alert(t.invoicePage.saveSuccess);
+
+      } catch (error: any) {
+        console.error("An error occurred during the print and save process:", error);
+      if (error.message === 'DUPLICATE_INVOICE') {
+        alert(t.invoicePage.duplicateInvoiceError);
+      } else {
+        alert(`${t.invoicePage.saveError}: ${error.message}`);
+      }
+        alert(`${t.invoicePage.saveError}: ${error.message}`);
+      } finally {
+        setIsProcessing(false);
+      }
   };
-
 
   return (
     <div className="p-4 md:p-8 max-w-7xl mx-auto">
@@ -130,6 +141,7 @@ const InvoicePage: React.FC<InvoicePageProps> = ({ navigate, t, language }) => {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div className="lg:col-span-2 bg-gray-50 dark:bg-gray-800 p-6 rounded-lg shadow-md">
+          {/* ... محتوى فورم الإدخال ... */}
           <div className="flex flex-col md:flex-row justify-between mb-6 border-b pb-4 border-gray-200 dark:border-gray-700">
             <div>
               <p className="font-semibold text-lg">{gregorianDate}</p>
@@ -192,7 +204,6 @@ const InvoicePage: React.FC<InvoicePageProps> = ({ navigate, t, language }) => {
               {t.invoicePage.addItem}
             </button>
           </div>
-
         </div>
 
         <div className="bg-gray-50 dark:bg-gray-800 p-6 rounded-lg shadow-md flex flex-col justify-between">
@@ -254,18 +265,6 @@ const InvoicePage: React.FC<InvoicePageProps> = ({ navigate, t, language }) => {
               {isProcessing ? t.invoicePage.printing : t.invoicePage.printButton}
             </button>
           </div>
-        </div>
-      </div>
-      <div className="print-container">
-        <div ref={printRef}>
-          <InvoiceTemplate 
-            invoice={invoiceData} 
-            paperSize={paperSize} 
-            shopQrData={shopQrData}
-            invoiceQrData={invoiceQrData} 
-            t={t} 
-            language={language} 
-          />
         </div>
       </div>
     </div>

@@ -49,6 +49,7 @@ export const translations = {
       validationError: "Please fill in all required fields.",
       saveSuccess: "Invoice saved successfully!",
       saveError: "Error saving invoice",
+      duplicateInvoiceError: "Invoice number is already in use. Please use a new number." // <-- إضافة
     },
     cardPage: {
       title: "Create Greeting Card",
@@ -139,6 +140,8 @@ export const translations = {
       validationError: "يرجى ملء جميع الحقول المطلوبة.",
       saveSuccess: "تم حفظ الفاتورة بنجاح!",
       saveError: "خطأ في حفظ الفاتورة",
+      duplicateInvoiceError: "رقم الفاتورة مستخدم بالفعل. يرجى إدخال رقم جديد."
+
     },
     cardPage: {
       title: "إنشاء بطاقة إهداء",

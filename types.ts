@@ -39,3 +39,8 @@ export type Language = 'en' | 'ar';
 export type Translation = {
   [key: string]: any;
 };
+
+export interface SaveInvoiceResponse {
+  status: 'success' | 'error';
+  message?: string;
+}

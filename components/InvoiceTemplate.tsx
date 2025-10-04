@@ -1,12 +1,13 @@
 import React from 'react';
 import { Invoice, InvoicePaperSize, Translation } from '../types';
-import { QRCodeSVG as QRCode } from 'qrcode.react';
+import { QRCodeCanvas } from 'qrcode.react';
+
+import razaLogo from '../razalogo.png';
+import razaOrgQr from '../razaorg.png';
+
 import {
-  LOGO_URL,
-  MINISTRY_QR_CODE_URL,
   SHOP_NAME,
   SHOP_NAME_AR,
-  SHOP_VAT_NUMBER,
   SHOP_INSTAGRAM_URL,
   SHOP_FACEBOOK_URL,
   SHOP_TIKTOK_URL,
@@ -30,6 +31,7 @@ const socialLinks = [
   { name: 'WhatsApp', url: SHOP_WHATSAPP_URL },
 ];
 
+
 const InvoiceTemplate: React.FC<InvoiceTemplateProps> = ({ invoice, paperSize, invoiceQrData, t, language }) => {
   const isRTL = language === 'ar';
   const paperSizeClass = {
@@ -42,24 +44,24 @@ const InvoiceTemplate: React.FC<InvoiceTemplateProps> = ({ invoice, paperSize, i
     <div className={`p-4 bg-white text-black shadow-lg mx-auto ${paperSizeClass}`} dir={isRTL ? 'rtl' : 'ltr'}>
       <header className="flex justify-between items-center border-b-2 border-black pb-4">
         <div className={isRTL ? 'text-right' : 'text-left'}>
-          <h1 className="text-4xl font-bold">{language === 'ar' ? SHOP_NAME_AR : SHOP_NAME}</h1>
+          <h1 className="text-4xl font-bold font-serif">{language === 'ar' ? SHOP_NAME_AR : SHOP_NAME}</h1>
           <h2 className="text-2xl">{t.invoiceTemplate.invoice}</h2>
           {invoice.isTaxable && invoice.vatNumber && <p>{t.invoiceTemplate.vatNumber}: {invoice.vatNumber}</p>}
         </div>
-        <img src={LOGO_URL} alt="Shop Logo" className="w-24 h-24 object-contain" />
+        <img src={razaLogo} alt="Shop Logo" className="w-24 h-24 object-contain" />
       </header>
 
       <section className="flex justify-between my-6">
         <div>
           <h3 className="font-bold mb-1">{t.invoiceTemplate.billTo}</h3>
-          <p>{invoice.customerName}</p>
-          <p>{invoice.customerMobile}</p>
-          <p>{invoice.customerEmail}</p>
+          <p>{invoice.customerName || 'N/A'}</p>
+          <p>{invoice.customerMobile || 'N/A'}</p>
+          <p>{invoice.customerEmail || 'N/A'}</p>
         </div>
         <div className={isRTL ? 'text-left' : 'text-right'}>
           <p><strong>{t.invoicePage.invoiceNumber}:</strong> {invoice.invoiceNumber}</p>
-          <p><strong>{t.invoicePage.gregorianDate}:</strong> {invoice.gregorianDate}</p>
-          <p><strong>{t.invoicePage.hijriDate}:</strong> {invoice.hijriDate}</p>
+          <p><strong>{language === 'ar' ? 'التاريخ الميلادي' : 'Date'}:</strong> {invoice.gregorianDate}</p>
+          <p><strong>{language === 'ar' ? 'التاريخ الهجري' : 'Hijri Date'}:</strong> {invoice.hijriDate}</p>
         </div>
       </section>
 
@@ -79,7 +81,7 @@ const InvoiceTemplate: React.FC<InvoiceTemplateProps> = ({ invoice, paperSize, i
           ))}
         </tbody>
       </table>
-
+      
       <section className={`flex ${isRTL ? 'justify-start' : 'justify-end'} mb-8`}>
         <div className="w-64">
           <div className="flex justify-between">
@@ -108,17 +110,17 @@ const InvoiceTemplate: React.FC<InvoiceTemplateProps> = ({ invoice, paperSize, i
           <div className="text-center">
             <p className="font-bold mb-2">{t.invoiceTemplate.thankYou}</p>
             <div className="flex gap-3 justify-center">
-              {socialLinks.map(link => (
+              {socialLinks.map((link, index) => (
                 <div key={link.name}>
-                  <QRCode value={link.url} size={40} level="L" />
+                  <QRCodeCanvas id={`social-qr-${index}`} value={link.url} size={40} level="L" imageSettings={{willReadFrequently: true}} />
                 </div>
               ))}
             </div>
           </div>
 
           <div className="flex flex-col items-center gap-2">
-            {invoice.isTaxable && invoiceQrData && <QRCode value={invoiceQrData} size={80} />}
-            <img src={MINISTRY_QR_CODE_URL} alt="Ministry QR Code" className="w-16 h-16" />
+            {invoice.isTaxable && invoiceQrData && <QRCodeCanvas id="tax-qr" value={invoiceQrData} size={80} imageSettings={{willReadFrequently: true}} />}
+            <img src={razaOrgQr} alt="Ministry QR Code" style={{ width: '80px', height: '80px' }} />
           </div>
         </div>
       </footer>

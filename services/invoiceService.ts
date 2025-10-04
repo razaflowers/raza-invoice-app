@@ -1,41 +1,49 @@
-import { Invoice, InvoiceHistoryItem } from '../types';
+import { Invoice, InvoiceHistoryItem, Translation } from '../types';
 
-const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzq0Z-C3hl246XuueAJLFTOq56SlwTJN_0KjbGDNS6jI2TsiGFT5T1cnqfLU1D-Y4_8-A/exec'; // استخدم الرابط الأخير الذي يعمل لديك
+const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbw8-sPi2TGBWtWUijLw_-HzRnRsf6L92CII6X5onJotmNFWLvCYajdL75vVD7TKoZ860g/exec';
 
 /**
- * Sends the complete invoice data to the Google Apps Script backend.
+ * Sends invoice data to Google Apps Script and receives a PDF in return.
  */
-export const saveInvoiceToDrive = async (invoiceData: Invoice & { subtotal: number; tax: number; total: number; }) => {
-  console.log("Starting invoice save process...");
-  
-  // We send the data as a simple string within a FormData object
-  // This is a reliable way to bypass CORS issues with Apps Script
+export const createAndFetchInvoice = async (
+  invoiceData: Invoice & { subtotal: number; tax: number; total: number; },
+  language: string,
+  t: Translation // إرسال كائن الترجمة
+) => {
+  console.log("Sending invoice data to backend for PDF creation...");
+
+  const payload = {
+    invoiceData,
+    language,
+    t: { // إرسال النصوص المطلوبة فقط لتقليل الحجم
+      shopName: language === 'ar' ? "محل رازا الورود للهدايا ": "Raza Flowers",
+      fromShop: language === 'ar' ? "من رازا الورود للهدايا" : "from Raza Flowers",
+      emailGreeting: language === 'ar' ? "مرحباً" : "Hello",
+      emailBody: language === 'ar' ? "شكراً لتعاملكم معنا. تجدون الفاتورة مرفقة." : "Thank you for your business. Your invoice is attached.",
+      emailClosing: language === 'ar' ? "مع تحيات" : "Best regards",
+      invoiceTemplate: t.invoiceTemplate,
+      invoicePage: t.invoicePage,
+    }
+  };
+
   const formData = new FormData();
-  formData.append('invoiceData', JSON.stringify(invoiceData));
-  
-  console.log("Invoice data to be sent:", invoiceData);
-  
+  formData.append('payload', JSON.stringify(payload));
+
   try {
-    console.log("Sending POST request to Google Apps Script at:", SCRIPT_URL);
     const response = await fetch(SCRIPT_URL, {
       method: 'POST',
       body: formData,
-      // We remove 'mode: no-cors' and headers completely to let the browser handle it
     });
 
-    // Now we can actually read the response from the server
     const result = await response.json();
-    console.log("Received response from server:", result);
-    
     if (result.status !== 'success') {
-      throw new Error(result.message || 'An unknown server error occurred.');
+      throw new Error(result.message || 'Server error');
     }
-    
-    return result;
+    return result; // Will contain { status, pdfUrl, pdfBase64 }
 
   } catch (error) {
-    console.error('Error saving invoice:', error);
-    throw error; // Re-throw the error to be caught by the UI
+    console.error('Error creating invoice:', error);
+    throw error;
   }
 };
 
